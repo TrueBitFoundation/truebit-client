@@ -55,7 +55,7 @@ module.exports = {
 	
 								let output = await computationLayer.runSteps.call(program, taskData.numSteps)
 	
-								let solution = output[0][1]
+								let solution = output[0]
 	
 								tx = await incentiveLayer.commitSolution(taskID, solution, {from: account})
 	

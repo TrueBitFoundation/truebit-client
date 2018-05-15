@@ -55,7 +55,7 @@ module.exports = {
 	
 						let output = await computationLayer.runSteps.call(program, taskData.numSteps)
 	
-						let mySolution = output[0][1]
+						let mySolution = output[0]
 	
 						if(mySolution != solution) {
 							await depositsHelper(web3, incentiveLayer, account, taskMinDeposit)
