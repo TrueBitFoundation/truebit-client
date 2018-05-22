@@ -22,10 +22,8 @@
     "clear": "^0.1.0",
     "ethereumjs-util": "^5.1.5",
     "figlet": "^1.2.0",
-    "install": "^0.11.0",
     "minimist": "^1.2.0",
     "mocha": "^5.1.0",
-    "npm": "^5.8.0",
     "truffle-contract": "^3.0.4",
     "web3": "^1.0.0-beta.33"
   }
