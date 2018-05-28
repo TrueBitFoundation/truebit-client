@@ -41,11 +41,11 @@ describe('Truebit OS', async function() {
 	    assert(os.solver)
 	})
 
-	before(async () => {
-	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0])
-	    killSolver = await os.solver.init(os.web3, os.accounts[1])
-	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
-	})
+		before(async () => {
+			killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
+			killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
+			originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+		})
 
 	after(() => {
 	    killTaskGiver()
