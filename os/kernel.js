@@ -2,6 +2,8 @@ const fs = require('fs')
 
 const Web3 = require('web3')
 
+const logger = require('./logger')
+
 function requireHelper(cb) {
 	try {
 		return cb()
@@ -15,7 +17,6 @@ module.exports = async (configPath) => {
 
 	const httpProvider = new Web3.providers.HttpProvider(config["http-url"])
 	const web3 = new Web3(httpProvider)
-
 	const accounts = await web3.eth.getAccounts()
 
 	return {
@@ -23,6 +24,8 @@ module.exports = async (configPath) => {
 		solver: requireHelper(() => { return require(config["solver"]) }),
 		verifier: requireHelper(() => { return require(config["verifier"]) }),
 		web3: web3,
-		accounts: accounts
+		accounts: accounts,
+		logger: logger
 	}
+
 }

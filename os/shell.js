@@ -159,7 +159,7 @@ function startHelper(command, options) {
     switch(command) {
       case "task":
         //addToSession(account, command, "development", () => {
-          os.taskGiver.init(os.web3, account)
+          os.taskGiver.init(os.web3, account, os.logger)
           console.log("Task Giver initialized")
         //})
         break
