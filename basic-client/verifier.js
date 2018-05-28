@@ -30,7 +30,12 @@ function setup(httpProvider) {
 }
 
 module.exports = {
-		init: async (web3, account) => {
+		init: async (web3, account, logger) => {
+
+			logger.log({
+				level: 'info',
+				message: `verifier initialized.`
+			  });
 
 			let [incentiveLayer, disputeResolutionLayer, computationLayer] = await setup(web3.currentProvider)
 			
