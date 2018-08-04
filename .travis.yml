@@ -9,9 +9,19 @@ cache:
 before_install:
   - sudo add-apt-repository ppa:ethereum/ethereum -y
   - sudo apt-get update
+  - sudo apt-get install software-properties-common
   - sudo apt-get install solc
   - npm i -g ganache-cli@6.1.0 truffle@4.1.8
   - ganache-cli &>/dev/null &
+  # install IPFS
+  - wget "https://dist.ipfs.io/go-ipfs/v0.4.9/go-ipfs_v0.4.9_linux-amd64.tar.gz" -O /tmp/ipfs.tar.gz
+  - pushd . && cd $HOME/bin && tar -xzvf /tmp/ipfs.tar.gz && popd
+  - export PATH="$HOME/bin/go-ipfs:$PATH"
+  - ipfs init
+  - ipfs daemon &>/dev/null &
+  - sleep 5
+  # confirm ipfs is up
+  - curl http://localhost:5001/api/v0/id
 
 install:
   - npm install
