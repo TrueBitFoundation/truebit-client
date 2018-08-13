@@ -8,6 +8,7 @@ function requireHelper(cb) {
     try {
 	return cb()
     } catch (e) {
+        console.log(e)
 	return undefined
     }
 }

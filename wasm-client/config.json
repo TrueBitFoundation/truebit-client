@@ -4,10 +4,10 @@
     "solver" : "../wasm-client/solver",
     "verifier" : "../wasm-client/verifier",
     "ipfs" : {
-	"host": "localhost",
+	"host": "programming-progress.com",
 	"port": "5001",
 	"protocol": "http",
 	"merkleComputer": "../wasm-client/webasm-solidity/merkle-computer/"
     }
 }
-    
+
