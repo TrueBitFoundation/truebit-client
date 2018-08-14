@@ -1,7 +1,7 @@
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 
-const cliLib = require('../cli/cliLib')
+const cliLib = require('../../cli/cliLib')
 
 let killTaskGiver
 let killSolver
@@ -25,7 +25,7 @@ describe('CLI Lib', async function() {
   describe('version', async () => {
     it('displays package.json version', () => {
       let version = cliLib.version({ os })
-      assert(version === require('../package.json').version)
+      assert(version === require('../../package.json').version)
     })
   })
 

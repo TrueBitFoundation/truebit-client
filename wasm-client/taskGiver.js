@@ -64,7 +64,7 @@ module.exports = {
 		    let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
 
 		    let currentBlockNumber = await web3.eth.getBlockNumber()
-		    
+		    /*
 		    waitForBlock(web3, currentBlockNumber + 105, async () => {
 
 			if(await incentiveLayer.finalizeTask.call(taskID)) {			    
@@ -74,7 +74,7 @@ module.exports = {
 				message: `Task ${taskID} finalized`
 			    })			    
 			}			
-		    })
+		    })*/
 		}
 	    }
 	})

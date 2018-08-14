@@ -9,7 +9,6 @@
     "start": "node ./cli/index.js basic-client/config.json",
     "deploy": "./basic-client/deploy.sh",
     "deploy-wasm": "./wasm-client/deploy.sh",
-    "tests": "mocha ./test/os.js ./test/cliLib.spec.js ./test/os-wasm.js ./test/os-wasm-challenge.js",
     "test": "mocha",
     "truebit": "node ./cli/index.js"
   },

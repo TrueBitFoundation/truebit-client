@@ -1,22 +1,53 @@
+dist: xenial
+sudo: required
 language: node_js
 node_js:
-  - "9.4.0"
+  - "8.11.3"
   
 cache:
   directories:
     - "node_modules"
 
 before_install:
+  # Install Ethereum Tools
   - sudo add-apt-repository ppa:ethereum/ethereum -y
   - sudo apt-get update
+  - sudo apt-get install software-properties-common
   - sudo apt-get install solc
+  # Install Ganache & Truffle
   - npm i -g ganache-cli@6.1.0 truffle@4.1.8
   - ganache-cli &>/dev/null &
+  # Install IPFS
+  - wget "https://dist.ipfs.io/go-ipfs/v0.4.9/go-ipfs_v0.4.9_linux-amd64.tar.gz" -O /tmp/ipfs.tar.gz
+  - pushd . && cd $HOME/bin && tar -xzvf /tmp/ipfs.tar.gz && popd
+  - export PATH="$HOME/bin/go-ipfs:$PATH"
+  - ipfs init
+  - ipfs daemon &>/dev/null &
+  - sleep 5
+  - curl http://localhost:5001/api/v0/id
+
+  # Install ocaml-offchain
+  - sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev
+  - opam init -y --comp=4.05.0
+  - eval $(opam config env)
+  - opam update
+  - opam install -y cryptokit yojson
+  - cd ./wasm-client/ocaml-offchain/interpreter
+  - make
+  - cd ../../..
+
+  # Install webasm-solidity
+  - cd ./wasm-client/webasm-solidity
+  - npm i
+  - npm run compile
+  - npm run deploy
+  - cd ../..
 
 install:
   - npm install
   - npm run setup
+  - npm run deploy
   - npm run deploy-wasm
 
 script:
-  - NODE_ENV='production' npm run tests
+  - NODE_ENV='production' npm run test

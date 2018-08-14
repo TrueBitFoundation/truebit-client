@@ -185,21 +185,37 @@ module.exports = {
 		    })
 
 		    if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
-                
-                let fileid = parseId(storageAddress)
+                console.log("storage address", storageAddress)
+                if (storageAddress.substr(0,2) == "0x") {
+                    let wasmCode = await fileSystem.getCode.call(storageAddress)
 
-			let buf = await loadMixedCode(fileid)
-            let files = await loadFilesFromChain(fileid)
+                    buf = Buffer.from(wasmCode.substr(2), "hex")
 
-			vm = await setupVM(
-			    incentiveLayer,
-			    merkleComputer,
-			    taskID,
-			    buf,
-			    result.args.ct.toNumber(),
-			    false,
-                files
-			)
+                    vm = await setupVM(
+                        incentiveLayer,
+                        merkleComputer,
+                        taskID,
+                        buf,
+                        result.args.ct.toNumber(),
+                        false
+                    )
+                }
+                else {
+                    let fileid = parseId(storageAddress)
+
+                    let buf = await loadMixedCode(fileid)
+                    let files = await loadFilesFromChain(fileid)
+
+                    vm = await setupVM(
+                        incentiveLayer,
+                        merkleComputer,
+                        taskID,
+                        buf,
+                        result.args.ct.toNumber(),
+                        false,
+                        files
+                    )
+                }
 			
 		    } else if(storageType == merkleComputer.StorageType.IPFS) {
 			// download code file
@@ -244,7 +260,7 @@ module.exports = {
 		    interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
 
-		    //console.log(solution)
+		    console.log(solution)
 		    
 		    try {
 			
@@ -280,8 +296,6 @@ module.exports = {
 
             waitForBlock(web3, currentBlockNumber + 105, async () => {
                 
-                console.log("What is happening")
-
                 if(await incentiveLayer.finalizeTask.call(taskID)) {
                     await incentiveLayer.finalizeTask(taskID, {from: account, gas:200000})
                     logger.log({
