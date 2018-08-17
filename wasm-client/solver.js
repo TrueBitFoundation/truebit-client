@@ -22,6 +22,35 @@ function setup(httpProvider) {
     })()
 }
 
+function getLeaf(lst, loc) {
+    if (loc % 2 == 1) return lst[1]
+    else return lst[0]
+}
+
+function parseId(str) {
+    var res = ""
+    for (var i = 0; i < str.length; i++) res = (str.charCodeAt(i)-65).toString(16) + res
+    return "0x" + res;
+}
+
+function parseData(lst, size) {
+    var res = []
+    lst.forEach(function (v) {
+        for (var i = 1; i <= 32; i++) {
+            res.push(parseInt(v.substr(i*2, 2), 16))
+        }
+    })
+    res.length = size
+    return Buffer.from(res)
+}
+
+function arrange(arr) {
+    var res = []
+    var acc = ""
+    arr.forEach(function (b) { acc += b; if (acc.length == 64) { res.push("0x"+acc); acc = "" } })
+    if (acc != "") res.push("0x"+acc)
+    return res
+}
 
 let tasks = {}
 let games = {}
@@ -36,8 +65,105 @@ module.exports = {
 	let [incentiveLayer, fileSystem, disputeResolutionLayer] = await setup(web3.currentProvider)
 
 	const taskPostedEvent = incentiveLayer.Posted()
+    
+    async function loadMixedCode(fileid) {
+        var hash = await fileSystem.getIPFSCode.call(fileid)
+        console.log("code hash", hash, fileid)
+        if (hash) {
+            return (await mcFileSystem.download(hash, "task.wasm")).content
+        }
+        else {
+			let wasmCode = await fileSystem.getCode.call(fileid)
+			return Buffer.from(wasmCode.substr(2), "hex")
+        }
+    }
+        
+    async function loadFilesFromChain(id) {
+        let lst = await fileSystem.getFiles.call(id)
+        let res = []
+        for (let i = 0; i < lst.length; i++) {
+            let ipfs_hash = await fileSystem.getHash.call(lst[i])
+            let name = await fileSystem.getName.call(lst[i])
+            if (ipfs_hash) {
+				let dataBuf = (await mcFileSystem.download(ipfsHash, name)).content
+                res.push({name:name, dataBuf:dta.content})
+            }
+            else {
+                let size = await fileSystem.getByteSize.call(lst[i])
+                let data = await fileSystem.getData.call(lst[i])
+                let buf = parseData(data, size)
+                res.push({name:name, dataBuf:buf})
+            }
+        }
+        return res
+    }
+        
+    async function createFile(fname, buf) {
+        var nonce = await web3.eth.getTransactionCount(account)
+        var arr = []
+        for (var i = 0; i < buf.length; i++) {
+            if (buf[i] > 15) arr.push(buf[i].toString(16))
+            else arr.push("0" + buf[i].toString(16))
+        }
+        // console.log("Nonce file", nonce, {arr:arr, buf:buf, arranged: arrange(arr)})
+        var tx = await fileSystem.createFileWithContents(fname, nonce, arrange(arr), buf.length, {from: account, gas: 200000})
+        var id = await fileSystem.calcId.call(nonce, {from: account, gas: 200000})
+        var lst = await fileSystem.getData.call(id, {from: account, gas: 200000})
+        console.log("Ensure upload", {data:lst})
+        return id
+    }
 
-	taskPostedEvent.watch(async (err, result) => {
+    function uploadIPFS(fname, buf) {
+        return new Promise(function (cont,err) {
+            ipfs.files.add([{content:buf, path:fname}], function (err, res) {
+                cont(res[0])
+            })
+        })
+    }
+
+    async function createIPFSFile(fname, buf) {
+        var hash = await uploadIPFS(fname, buf)
+        var info = merkleComputer.merkleRoot(buf)
+        var nonce = await web3.eth.getTransactionCount(base)
+        logger.info("Adding ipfs file", {name:new_name, size:info.size, ipfs_hash:hash.hash, data:info.root, nonce:nonce})
+        await fileSystem.addIPFSFile(new_name, info.size, hash.hash, info.root, nonce, {from: account, gas: 200000})
+        var id = await fileSystem.calcId.call(nonce, {from: account, gas: 200000})
+        return id
+    }
+
+    async function uploadOutputs(task_id, vm) {
+        var lst = await incentiveLayer.getUploadNames.call(task_id)
+        var types = await incentiveLayer.getUploadTypes.call(task_id)
+        logger.info("Uploading", {names:lst, types:types})
+        var proofs = await vm.fileProofs() // common.exec(config, ["-m", "-input-proofs", "-input2"])
+        // var proofs = JSON.parse(proofs)
+        logger.info("Uploading", {names:lst, types:types, proofs: proofs})
+        for (var i = 0; i < lst.length; i++) {
+            // find proof with correct hash
+            console.log("Findind upload proof", {hash:lst[i], kind:types[i]})
+            var hash = lst[i]
+            var proof = proofs.find(el => getLeaf(el.name, el.loc) == hash)
+            if (!proof) {
+                logger.error("Cannot find proof for a file")
+                continue
+            }
+            console.log("Found proof", proof)
+            // upload the file to ipfs or blockchain
+            var fname = proof.file.substr(0, proof.file.length-4)
+            var buf = await vm.readFile(proof.file)
+            var file_id
+            if (parseInt(types[i]) == 1) file_id = await createIPFSFile(fname, buf)
+            else {
+                console.log("Create file", {fname:fname, data:buf})
+                file_id = await createFile(fname, buf)
+            }
+            console.log("Uploading file", {id:file_id, fname:fname})
+            console.log("result", await incentiveLayer.uploadFile.call(task_id, i, file_id, proof.name, proof.data, proof.loc, {from: account, gas: 1000000}))
+            await incentiveLayer.uploadFile(task_id, i, file_id, proof.name, proof.data, proof.loc, {from: account, gas: 1000000})
+        }
+    }
+
+    taskPostedEvent.watch(async (err, result) => {
 	    if (result) {
 		let taskID = result.args.id
 		
@@ -58,21 +184,38 @@ module.exports = {
 			message: `Solving task ${taskID}`
 		    })
 
-		    let buf
 		    if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
+                console.log("storage address", storageAddress)
+                if (storageAddress.substr(0,2) == "0x") {
+                    let wasmCode = await fileSystem.getCode.call(storageAddress)
 
-			let wasmCode = await fileSystem.getCode.call(storageAddress)
+                    buf = Buffer.from(wasmCode.substr(2), "hex")
 
-			buf = Buffer.from(wasmCode.substr(2), "hex")
+                    vm = await setupVM(
+                        incentiveLayer,
+                        merkleComputer,
+                        taskID,
+                        buf,
+                        result.args.ct.toNumber(),
+                        false
+                    )
+                }
+                else {
+                    let fileid = parseId(storageAddress)
 
-			vm = await setupVM(
-			    incentiveLayer,
-			    merkleComputer,
-			    taskID,
-			    buf,
-			    result.args.ct.toNumber(),
-			    false
-			)
+                    let buf = await loadMixedCode(fileid)
+                    let files = await loadFilesFromChain(fileid)
+
+                    vm = await setupVM(
+                        incentiveLayer,
+                        merkleComputer,
+                        taskID,
+                        buf,
+                        result.args.ct.toNumber(),
+                        false,
+                        files
+                    )
+                }
 			
 		    } else if(storageType == merkleComputer.StorageType.IPFS) {
 			// download code file
@@ -117,7 +260,7 @@ module.exports = {
 		    interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
 
-		    //console.log(solution)
+		    console.log(solution)
 		    
 		    try {
 			
@@ -129,10 +272,17 @@ module.exports = {
 			    solution.vm.input_data,
 			    {from: account, gas: 200000}
 			)
-
+            
 			logger.log({
 			    level: 'info',
 			    message: `Submitted solution for task ${taskID} successfully`
+			})
+			
+            await uploadOutputs(taskID, vm)
+            
+			logger.log({
+			    level: 'info',
+			    message: `Uploaded required files for ${taskID}`
 			})
 			
 
@@ -141,6 +291,19 @@ module.exports = {
 			    vm: vm,
 			    interpreterArgs: interpreterArgs
 			}
+            
+            let currentBlockNumber = await web3.eth.getBlockNumber()
+
+            waitForBlock(web3, currentBlockNumber + 105, async () => {
+                
+                if(await incentiveLayer.finalizeTask.call(taskID)) {
+                    await incentiveLayer.finalizeTask(taskID, {from: account, gas:200000})
+                    logger.log({
+                        level: 'info',
+                        message: `Task ${taskID} finalized`
+                    })
+                }
+            })
 			
 		    } catch(e) {
 			//TODO: Add logging unsuccessful submission attempt
