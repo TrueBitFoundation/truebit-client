@@ -17,9 +17,7 @@ const ipfs = require('ipfs-api')(host, '5001', {protocol: 'http'})
 
 const fileSystem = merkleComputer.fileSystem(ipfs)
 
-let os
-
-let taskSubmitter
+let os, taskSubmitter
 
 before(async () => {
     os = await require('../os/kernel')("./wasm-client/config.json")
@@ -76,15 +74,7 @@ describe('Truebit OS WASM Alphabet', async function() {
 
 	it('should submit task', async () => {
 
-	    let exampleTask = {
-		"minDeposit": "1",
-		"codeType": "WASM",
-		"storageType": "IPFS",
-		"codeFile": "/data/reverse_alphabet.wasm",
-		"reward": "0",
-		"files": ["/data/alphabet.txt", "/data/reverse_alphabet.txt"]
-	    }
-
+	    let exampleTask = JSON.parse(fs.readFileSync("testWasmAlphabet.json"))
 	    //simulate cli by adding from account and translate reward
 
 	    exampleTask["from"] = os.accounts[0]

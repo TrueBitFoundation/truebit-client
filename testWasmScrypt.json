@@ -1,0 +1,8 @@
+{
+    "minDeposit": "1",
+    "codeType": "WASM",
+    "storageType": "IPFS",
+    "codeFile": "/scrypt-data/task.wasm",
+    "reward": "0",
+    "files" : ["/input.data", "/output.data"]
+}
