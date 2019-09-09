@@ -42,5 +42,13 @@ install:
   - npm run compile
   - npm run deploy
 
+deploy:
+  provider: releases
+  api_key:
+    secure: kyH9BfKnuBRWNZwhVi3P0AZ+FCwp/IxzTGt2erMoajM/rxeuI99ZnGWhQHzakHwtVwjRmTxnHMio8S1w1cb1VCSt6uahJcfaiejw/PKUGq4NVCDm8BshQ2+rMJc7B8c10f86C3dfSUVKnSHcOyawsJYrWNoxUP2crzGheP7NzV082qoEhS9HqVd/Kyc0PJUEiEWGN6QSSsw15Epedh+QggXniejsGN337/UNWvTAKzX0Eg7iZCBheiSTy9yxc5uGY0JcXIukdZhtShPs3GEURIH9Uj6Z0Oaq4fs+M0cJzGANbZOpYwRnwgnbBkhUAkbLD7MQF/SR9Asur2w4+7a17UV+0eH+dNCxU57rIoBMe/WWqICJno/ln3fEyaZYTEgVyd5TTDaTGodYTRqwLKbLJf6ZdBOuAJ9jLYZ+wjbDvgogAc/XPyehfr7OcrtYGTfDQvsydXHmjKtz04M0ciZIyfBN5aIvggEXMzHj34a4uNGtu/c2jbybKVjOLhyEOAJyXqQj8svR6KruDTOzg+KcS5I7TqNVjRC8uDj3k2dMc6IKvejdVLSIBUUdrMdAv56/eGvYkiMvenDjydGlmx9i6EQ1J+cy3cz2EgOUTVluX9do59I3o0Dgpdv8MF9RyGnvwtahfIQCuNNM8gJ5r16Os5+MuxW7outl38vrzzc8Njo=
+  file: ''
+  on:
+    repo: TrueBitFoundation/truebit-os
+
 script:
   - NODE_ENV='production' npm run test
